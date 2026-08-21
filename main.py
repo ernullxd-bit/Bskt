@@ -324,13 +324,13 @@ class OkalaAPI:
 def worker_copy_basket(target_url, api, template_data):
     time.sleep(random.uniform(0.1, 1.0))
     data = fetch_data(target_url)
-    if not data: return target_url, "error_fetch", None
+    if not data: return target_url, "error_fetch", None, ["دریافت اطلاعات اکانت از لینک ناموفق بود."]
     
     acc_token, ref_token = get_tokens_from_data(data)
-    if not acc_token: return target_url, "error_token", data
+    if not acc_token: return target_url, "error_token", data, ["توکن در اطلاعات اکانت یافت نشد."]
 
     uid = get_user_id_from_token(acc_token)
-    if not uid or uid == 0: return target_url, "error_uuid", data
+    if not uid or uid == 0: return target_url, "error_uuid", data, ["شناسه کاربری (User ID) معتبر نیست."]
 
     status, response_data = api.add_address(acc_token, uid, template_data['address'])
     if status == 401 and ref_token:
@@ -340,28 +340,35 @@ def worker_copy_basket(target_url, api, template_data):
             acc_token = new_acc
             status, response_data = api.add_address(acc_token, uid, template_data['address'])
 
-    if status != 200: return target_url, "error_address", data
+    if status != 200: 
+        return target_url, "error_address", data, [f"خطا در ثبت آدرس | HTTP Status: {status} | Response: {response_data}"]
 
     added_count = 0
+    cart_errors = []
+    
+    # پروسه اضافه کردن به سبد خرید
     for item in template_data['items']:
         for _ in range(item['quantity']):
-            c_status, _ = api.add_to_cart(acc_token, uid, template_data['store_id'], item['productId'])
-            if c_status == 200: added_count += 1
+            c_status, c_res = api.add_to_cart(acc_token, uid, template_data['store_id'], item['productId'])
+            if c_status == 200: 
+                added_count += 1
+            else:
+                cart_errors.append(f"خطا در افزودن محصول {item.get('productId')} | HTTP Status: {c_status} | Response: {c_res}")
             time.sleep(random.uniform(0.3, 0.8))
 
     if added_count == 0 and len(template_data['items']) > 0:
-        return target_url, "error_cart", data
+        return target_url, "error_cart", data, cart_errors
 
-    return target_url, "success", data
+    return target_url, "success", data, cart_errors
 
 def process_all_links(session_dir, template_url, target_urls):
     api = OkalaAPI()
     template_data_json = fetch_data(template_url)
-    if not template_data_json: return None, None, "خطا: دریافت اطلاعات اکانت مرجع ناموفق بود."
+    if not template_data_json: return None, None, "خطا: دریافت اطلاعات اکانت مرجع ناموفق بود.", None
 
     t_acc, t_ref = get_tokens_from_data(template_data_json)
     t_uid = get_user_id_from_token(t_acc)
-    if not t_uid or t_uid == 0: return None, None, "خطا: توکن اکانت مرجع معتبر نیست."
+    if not t_uid or t_uid == 0: return None, None, "خطا: توکن اکانت مرجع معتبر نیست.", None
 
     status, addr_res = api.get_address(t_acc, t_uid)
     if status == 401 and t_ref:
@@ -379,16 +386,16 @@ def process_all_links(session_dir, template_url, target_urls):
 
     status, stores_res = api.get_stores(t_acc, template_addr['lat'], template_addr['lng'], t_uid)
     if status != 200 or not isinstance(stores_res, dict) or not stores_res.get('data', {}).get('stores'):
-        return None, api.request_logs, "خطا: فروشگاهی برای اکانت مرجع یافت نشد."
+        return None, api.request_logs, f"خطا: هیچ فروشگاهی برای مختصات اکانت مرجع یافت نشد. (HTTP Status: {status})", None
 
     store_ids = [s['storeId'] for s in stores_res['data']['stores']]
     status, cart_res = api.get_cart(t_acc, t_uid, store_ids)
     if status != 200 or not isinstance(cart_res, dict) or not cart_res.get('data', {}).get('result'):
-        return None, api.request_logs, "خطا: امکان بازیابی سبد خرید اکانت مرجع وجود ندارد."
+        return None, api.request_logs, f"خطا: امکان بازیابی سبد خرید اکانت مرجع وجود ندارد. (HTTP Status: {status})", None
 
     cart_data = cart_res['data']['result'][0]
     cart_items = cart_data.get('items', [])
-    if not cart_items: return None, api.request_logs, "خطا: سبد خرید اکانت مرجع خالی است."
+    if not cart_items: return None, api.request_logs, "خطا: سبد خرید اکانت مرجع خالی است.", None
 
     template_data = {
         'address': template_addr,
@@ -397,6 +404,8 @@ def process_all_links(session_dir, template_url, target_urls):
     }
 
     stats = {"total_targets": len(target_urls), "success": 0, "error_fetch": 0, "error_address": 0, "error_cart": 0, "error_token": 0}
+    all_errors = []
+    
     updated_dir = os.path.join(session_dir, "Updated_Accounts")
     os.makedirs(updated_dir, exist_ok=True)
 
@@ -406,23 +415,37 @@ def process_all_links(session_dir, template_url, target_urls):
         for future in as_completed(futures):
             url = futures[future]
             try:
-                _, result, updated_json = future.result()
+                _, result, updated_json, c_errs = future.result()
                 if result == "success": stats["success"] += 1
                 elif result == "error_fetch": stats["error_fetch"] += 1
                 elif result in ["error_token", "error_uuid"]: stats["error_token"] += 1
                 elif result == "error_address": stats["error_address"] += 1
                 elif result == "error_cart": stats["error_cart"] += 1
                 
+                # ثبت دقیق گزارش خطاهای این اکانت در لیست
+                if c_errs:
+                    all_errors.append(f"🔗 لینک اکانت {counter}:\n{url}\n" + "\n".join(c_errs) + "\n" + "-"*40)
+                    
                 if updated_json:
                     file_name = f"target_account_{counter}.json"
                     with open(os.path.join(updated_dir, file_name), "w", encoding="utf-8") as f:
                         json.dump(updated_json, f, ensure_ascii=False, indent=2)
                 counter += 1
-            except Exception:
+            except Exception as e:
                 stats["error_fetch"] += 1
+                all_errors.append(f"🔗 لینک اکانت:\n{url}\nخطای سیستم پردازش: {str(e)}\n" + "-"*40)
 
     zip_path = shutil.make_archive(os.path.join(session_dir, "Updated_Accounts_Data"), 'zip', updated_dir)
-    return (zip_path, template_data, stats), api.request_logs, None
+    
+    # ساخت فایل گزارش خطاهای سرور
+    error_file_path = None
+    if all_errors:
+        error_file_path = os.path.join(session_dir, "Server_Errors.txt")
+        with open(error_file_path, "w", encoding="utf-8") as f:
+            f.write("گزارش دقیق خطاهای سرور در ثبت آدرس و افزودن سبد خرید:\n============================================================\n\n")
+            f.write("\n".join(all_errors))
+            
+    return (zip_path, template_data, stats, error_file_path), api.request_logs, None
 
 
 # --- 2. پاک کردن آدرس‌ها ---
@@ -581,13 +604,14 @@ async def handle_sync_links(message: Message, bot: Bot, state: FSMContext):
     
     result_data, logs, err = await asyncio.to_thread(process_all_links, session_dir, urls[0], urls[1:])
 
+    # در صورتی که فایل اکانت الگو مشکل داشت
     if err:
         await msg.edit_text(err)
         shutil.rmtree(session_dir, ignore_errors=True)
         await state.clear()
         return
 
-    final_zip_path, template_data, stats = result_data
+    final_zip_path, template_data, stats, error_file_path = result_data
     total_qty = sum(item['quantity'] for item in template_data['items'])
 
     report = (
@@ -598,6 +622,11 @@ async def handle_sync_links(message: Message, bot: Bot, state: FSMContext):
 
     await msg.delete()
     await message.answer_document(document=FSInputFile(final_zip_path), caption=report)
+    
+    # ارسال فایل خطاهای دقیق سرور
+    if error_file_path and os.path.exists(error_file_path):
+        await message.answer_document(document=FSInputFile(error_file_path), caption="⚠️ فایل گزارش دقیق خطاهای سرور (Server Errors)")
+        
     shutil.rmtree(session_dir, ignore_errors=True)
     await state.clear()
 
