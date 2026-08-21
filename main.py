@@ -195,18 +195,18 @@ def update_tokens_in_data(data, old_acc, new_acc, old_ref, new_ref):
         return data
 
 def get_user_id_from_token(token):
+    # ❌ مشکل برطرف شد: cerberusId عدد نیست، فقط userId و alternativeCustomerId عددی هستند
     try:
         payload = token.split('.')[1]
         payload += '=' * (-len(payload) % 4)
         decoded_bytes = base64.urlsafe_b64decode(payload)
         data = json.loads(decoded_bytes)
-        uid = data.get('cerberusId') or data.get('userId') or data.get('alternativeCustomerId')
-        if uid: return uid
+        uid = data.get('userId') or data.get('alternativeCustomerId')
+        if uid: return int(uid)
         return 0
     except Exception:
         return 0
 
-# تابع استخراج لینک از پیام متنی یا فایل متنی
 async def extract_urls_from_message(message: Message, bot: Bot):
     if message.text:
         return re.findall(r'(https?://\S+)', message.text)
@@ -289,7 +289,28 @@ class OkalaAPI:
 
     def add_address(self, token, uid, addr_data):
         url = 'https://apigateway.okala.com/api/voyager/C/CustomerAccount/AddAddress/'
-        payload = {'id': 0, 'customerId': uid, 'mobilePhone': '', 'ShoppingSectorPartId': '0', 'shoppingSectorId': '0', 'plaque': str(addr_data.get('plaque', '0')), 'unit': str(addr_data.get('unit', '1')), 'lat': float(addr_data['lat']), 'lng': float(addr_data['lng']), 'title': None, 'addressTypeId': 3, 'oprationDuration': random.randint(10000, 20000), 'address': addr_data.get('address', 'آدرس ثبت شده'), 'mapPlatform': 'ParsiMap'}
+        
+        # ❌ مشکل برطرف شد: جلوگیری از ارسال آدرس خالی (که باعث ارور سرور می‌شود)
+        addr_text = addr_data.get('address')
+        if not addr_text or not str(addr_text).strip():
+            addr_text = "آدرس ثبت شده از نقشه"
+            
+        payload = {
+            'id': 0, 
+            'customerId': int(uid), 
+            'mobilePhone': '', 
+            'ShoppingSectorPartId': '0',
+            'shoppingSectorId': '0', 
+            'plaque': str(addr_data.get('plaque') or '0'), 
+            'unit': str(addr_data.get('unit') or '1'), 
+            'lat': float(addr_data.get('lat', 35.69975)),
+            'lng': float(addr_data.get('lng', 51.33551)), 
+            'title': None, 
+            'addressTypeId': 3, 
+            'oprationDuration': random.randint(10000, 20000), 
+            'address': addr_text,
+            'mapPlatform': 'ParsiMap'
+        }
         return self.make_request('POST', url, token, json=payload)
 
     def delete_address(self, token, address_id):
@@ -346,7 +367,6 @@ def worker_copy_basket(target_url, api, template_data):
     added_count = 0
     cart_errors = []
     
-    # پروسه اضافه کردن به سبد خرید
     for item in template_data['items']:
         for _ in range(item['quantity']):
             c_status, c_res = api.add_to_cart(acc_token, uid, template_data['store_id'], item['productId'])
@@ -381,7 +401,7 @@ def process_all_links(session_dir, template_url, target_urls):
     if status == 200 and isinstance(addr_res, dict) and addr_res.get('data'):
         template_addr = addr_res['data'][0]
     else:
-        lat, lng, addr_text = 35.69975, 51.33551, "آدرس نقشه"
+        lat, lng, addr_text = 35.69975, 51.33551, "آدرس استخراج شده"
         template_addr = {'lat': lat, 'lng': lng, 'address': addr_text, 'plaque': '0', 'unit': '1'}
 
     status, stores_res = api.get_stores(t_acc, template_addr['lat'], template_addr['lng'], t_uid)
@@ -422,9 +442,8 @@ def process_all_links(session_dir, template_url, target_urls):
                 elif result == "error_address": stats["error_address"] += 1
                 elif result == "error_cart": stats["error_cart"] += 1
                 
-                # ثبت دقیق گزارش خطاهای این اکانت در لیست
                 if c_errs:
-                    all_errors.append(f"🔗 لینک اکانت {counter}:\n{url}\n" + "\n".join(c_errs) + "\n" + "-"*40)
+                    all_errors.append(f"🔗 لینک اکانت:\n{url}\n" + "\n".join(c_errs) + "\n" + "-"*40)
                     
                 if updated_json:
                     file_name = f"target_account_{counter}.json"
@@ -433,11 +452,10 @@ def process_all_links(session_dir, template_url, target_urls):
                 counter += 1
             except Exception as e:
                 stats["error_fetch"] += 1
-                all_errors.append(f"🔗 لینک اکانت:\n{url}\nخطای سیستم پردازش: {str(e)}\n" + "-"*40)
+                all_errors.append(f"🔗 لینک اکانت:\n{url}\nخطای پردازش: {str(e)}\n" + "-"*40)
 
     zip_path = shutil.make_archive(os.path.join(session_dir, "Updated_Accounts_Data"), 'zip', updated_dir)
     
-    # ساخت فایل گزارش خطاهای سرور
     error_file_path = None
     if all_errors:
         error_file_path = os.path.join(session_dir, "Server_Errors.txt")
@@ -556,8 +574,9 @@ def process_discount_links(session_dir, urls):
         report_file = os.path.join(session_dir, "Discounted_Links_Report.txt")
         with open(report_file, "w", encoding="utf-8") as f:
             f.write("گزارش لینک‌های دارای تخفیف:\n" + "="*40 + "\n\n")
+            # ❌ مشکل برطرف شد: چاپ آدرس لینک‌ها در خط جداگانه برای کپی آسان کاربر
             for url, amount in sorted(discounted_links, key=lambda x: x[1], reverse=True):
-                f.write(f"🎁 {int(amount/10000)} هزار تومانی -> {url}\n")
+                f.write(f"🎁 تخفیف {int(amount/10000)} هزار تومانی:\n{url}\n\n")
                 
     return stats, report_file, api.request_logs
 
@@ -604,7 +623,6 @@ async def handle_sync_links(message: Message, bot: Bot, state: FSMContext):
     
     result_data, logs, err = await asyncio.to_thread(process_all_links, session_dir, urls[0], urls[1:])
 
-    # در صورتی که فایل اکانت الگو مشکل داشت
     if err:
         await msg.edit_text(err)
         shutil.rmtree(session_dir, ignore_errors=True)
@@ -623,7 +641,6 @@ async def handle_sync_links(message: Message, bot: Bot, state: FSMContext):
     await msg.delete()
     await message.answer_document(document=FSInputFile(final_zip_path), caption=report)
     
-    # ارسال فایل خطاهای دقیق سرور
     if error_file_path and os.path.exists(error_file_path):
         await message.answer_document(document=FSInputFile(error_file_path), caption="⚠️ فایل گزارش دقیق خطاهای سرور (Server Errors)")
         
