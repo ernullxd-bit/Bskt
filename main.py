@@ -35,11 +35,13 @@ class BotStates(StatesGroup):
     waiting_for_sync_links = State()
     waiting_for_delete_links = State()
     waiting_for_discount_links = State()
+    waiting_for_cart_report_links = State()
 
 main_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="🛒 همگام‌سازی سبد خرید")],
-        [KeyboardButton(text="🗑 پاک کردن آدرس‌ها"), KeyboardButton(text="🔎 بررسی تخفیف‌ها")]
+        [KeyboardButton(text="📦 گزارش موجودی سبد خرید"), KeyboardButton(text="🔎 بررسی تخفیف‌ها")],
+        [KeyboardButton(text="🗑 پاک کردن آدرس‌ها")]
     ],
     resize_keyboard=True
 )
@@ -195,13 +197,13 @@ def update_tokens_in_data(data, old_acc, new_acc, old_ref, new_ref):
         return data
 
 def get_user_id_from_token(token):
-    # ❌ مشکل برطرف شد: cerberusId عدد نیست، فقط userId و alternativeCustomerId عددی هستند
+    # ✅ حل باگ: استخراج دقیق شناسه عددی (عدم استفاده از CerberusId)
     try:
         payload = token.split('.')[1]
         payload += '=' * (-len(payload) % 4)
         decoded_bytes = base64.urlsafe_b64decode(payload)
         data = json.loads(decoded_bytes)
-        uid = data.get('userId') or data.get('alternativeCustomerId')
+        uid = data.get('userId') or data.get('alternativeCustomerId') or data.get('sub')
         if uid: return int(uid)
         return 0
     except Exception:
@@ -290,14 +292,14 @@ class OkalaAPI:
     def add_address(self, token, uid, addr_data):
         url = 'https://apigateway.okala.com/api/voyager/C/CustomerAccount/AddAddress/'
         
-        # ❌ مشکل برطرف شد: جلوگیری از ارسال آدرس خالی (که باعث ارور سرور می‌شود)
+        # ✅ حل باگ: جلوگیری از ارسال آدرس خالی (که باعث ارور سرور می‌شد)
         addr_text = addr_data.get('address')
         if not addr_text or not str(addr_text).strip():
             addr_text = "آدرس ثبت شده از نقشه"
             
         payload = {
             'id': 0, 
-            'customerId': int(uid), 
+            'customerId': uid, 
             'mobilePhone': '', 
             'ShoppingSectorPartId': '0',
             'shoppingSectorId': '0', 
@@ -574,9 +576,86 @@ def process_discount_links(session_dir, urls):
         report_file = os.path.join(session_dir, "Discounted_Links_Report.txt")
         with open(report_file, "w", encoding="utf-8") as f:
             f.write("گزارش لینک‌های دارای تخفیف:\n" + "="*40 + "\n\n")
-            # ❌ مشکل برطرف شد: چاپ آدرس لینک‌ها در خط جداگانه برای کپی آسان کاربر
+            # ✅ جدا کردن متن و لینک در خط جدید برای سهولت کاربر
             for url, amount in sorted(discounted_links, key=lambda x: x[1], reverse=True):
                 f.write(f"🎁 تخفیف {int(amount/10000)} هزار تومانی:\n{url}\n\n")
+                
+    return stats, report_file, api.request_logs
+
+
+# --- 4. گزارش وضعیت سبد خرید (جدید) ---
+def worker_check_cart_status(target_url, api):
+    time.sleep(random.uniform(0.1, 1.0))
+    data = fetch_data(target_url)
+    if not data: return target_url, 0, 0, "error_fetch"
+    
+    acc_token, ref_token = get_tokens_from_data(data)
+    if not acc_token: return target_url, 0, 0, "error_token"
+    
+    uid = get_user_id_from_token(acc_token)
+    if not uid or uid == 0: return target_url, 0, 0, "error_uuid"
+
+    status, addr_res = api.get_address(acc_token, uid)
+    if status == 401 and ref_token:
+        new_acc, _ = api.refresh_token(ref_token)
+        if new_acc:
+            acc_token = new_acc
+            status, addr_res = api.get_address(acc_token, uid)
+            
+    if status != 200: return target_url, 0, 0, "error_api"
+        
+    lat, lng = 35.69975, 51.33551
+    if isinstance(addr_res, dict) and addr_res.get('data'):
+        addr_data = addr_res['data'][0]
+        lat = addr_data.get('lat', lat)
+        lng = addr_data.get('lng', lng)
+
+    status, stores_res = api.get_stores(acc_token, lat, lng, uid)
+    if status != 200 or not isinstance(stores_res, dict) or not stores_res.get('data', {}).get('stores'):
+        return target_url, 0, 0, "error_api"
+
+    store_ids = [s['storeId'] for s in stores_res['data']['stores']]
+    status, cart_res = api.get_cart(acc_token, uid, store_ids)
+    
+    if status == 200 and isinstance(cart_res, dict) and cart_res.get('data'):
+        cart_data = cart_res['data'].get('result', [])
+        if cart_data:
+            total_items = sum(cart.get('count', 0) for cart in cart_data)
+            total_price = sum(cart.get('totalPrice', 0) for cart in cart_data)
+            return target_url, total_items, total_price, "success"
+        return target_url, 0, 0, "success" # سبد خالی
+        
+    return target_url, 0, 0, "error_api"
+
+def process_cart_report_links(session_dir, urls):
+    api = OkalaAPI()
+    stats = {"total": len(urls), "with_cart": 0, "empty_cart": 0, "errors": 0}
+    cart_links = []
+    
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {executor.submit(worker_check_cart_status, url, api): url for url in urls}
+        for future in as_completed(futures):
+            try:
+                url, items, price, res = future.result()
+                if res == "success":
+                    if items > 0:
+                        stats["with_cart"] += 1
+                        cart_links.append((url, items, price))
+                    else:
+                        stats["empty_cart"] += 1
+                else:
+                    stats["errors"] += 1
+            except Exception:
+                stats["errors"] += 1
+
+    report_file = None
+    if cart_links:
+        report_file = os.path.join(session_dir, "Cart_Report.txt")
+        with open(report_file, "w", encoding="utf-8") as f:
+            f.write("گزارش اکانت‌های دارای سبد خرید:\n" + "="*40 + "\n\n")
+            # ✅ جدا کردن متن و لینک در خط جدید برای سهولت کاربر
+            for url, items, price in sorted(cart_links, key=lambda x: x[1], reverse=True):
+                f.write(f"🛒 سبد خرید با {items} کالا (مبلغ {int(price/10):,} تومان):\n{url}\n\n")
                 
     return stats, report_file, api.request_logs
 
@@ -608,6 +687,11 @@ async def btn_delete_addresses(message: Message, state: FSMContext):
 async def btn_check_discounts(message: Message, state: FSMContext):
     await state.set_state(BotStates.waiting_for_discount_links)
     await message.answer("🔎 **بررسی تخفیف‌ها**\n\nلطفاً لینک‌ها را ارسال کنید یا یک فایل `.txt` شامل لینک‌ها آپلود کنید.\nلینک‌های تخفیف‌دار در فایل متنی جداگانه به شما تحویل داده می‌شوند.")
+
+@router.message(F.text == "📦 گزارش موجودی سبد خرید")
+async def btn_check_carts(message: Message, state: FSMContext):
+    await state.set_state(BotStates.waiting_for_cart_report_links)
+    await message.answer("📦 **گزارش وضعیت سبد خرید**\n\nلطفاً لینک‌ها را ارسال کنید یا یک فایل `.txt` آپلود کنید.\nاکانت‌هایی که دارای سبد خرید هستند شناسایی و در فایلی جداگانه گزارش می‌شوند.")
 
 # ----------- هندلر وضعیت همگام سازی -----------
 @router.message(BotStates.waiting_for_sync_links, F.text | F.document)
@@ -701,6 +785,39 @@ async def handle_discount_links(message: Message, bot: Bot, state: FSMContext):
         await message.answer_document(
             document=FSInputFile(report_file), 
             caption="🎁 فایل لینک‌های دارای تخفیف"
+        )
+    
+    shutil.rmtree(session_dir, ignore_errors=True)
+    await state.clear()
+
+# ----------- هندلر وضعیت گزارش سبد خرید -----------
+@router.message(BotStates.waiting_for_cart_report_links, F.text | F.document)
+async def handle_cart_report_links(message: Message, bot: Bot, state: FSMContext):
+    urls = await extract_urls_from_message(message, bot)
+    if not urls:
+        await message.answer("خطا: هیچ لینکی یافت نشد.")
+        return
+
+    msg = await message.answer(f"📦 در حال بررسی سبد خریدهای اکانت‌ها...\nتعداد لینک‌ها: {len(urls)}")
+    session_dir = os.path.join(SESSION_BASE_DIR, str(uuid.uuid4()))
+    os.makedirs(session_dir, exist_ok=True)
+    
+    stats, report_file, logs = await asyncio.to_thread(process_cart_report_links, session_dir, urls)
+
+    await msg.delete()
+    report = (
+        "📊 گزارش بررسی وضعیت سبد خرید:\n\n"
+        f"کل لینک‌ها: {stats['total']}\n"
+        f"🛒 دارای سبد خرید: {stats['with_cart']}\n"
+        f"➖ سبد خالی/سوخته: {stats['empty_cart']}\n"
+        f"🔴 خطا: {stats['errors']}"
+    )
+    await message.answer(report)
+    
+    if report_file and os.path.exists(report_file):
+        await message.answer_document(
+            document=FSInputFile(report_file), 
+            caption="🛒 فایل لینک‌های دارای سبد خرید"
         )
     
     shutil.rmtree(session_dir, ignore_errors=True)
