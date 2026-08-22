@@ -48,106 +48,106 @@ main_keyboard = ReplyKeyboardMarkup(
 
 # ---------------- لیست پروکسی‌ها ----------------
 PROXY_LIST = [
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.7.126:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.230.150:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.23.131:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@45.3.55.136:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.13.20:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@104.207.62.232:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@209.50.189.86:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@104.207.34.222:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.233.174:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.241.244:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.236.215:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.251.13:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.28.96:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.251.174:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@217.181.92.238:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.0.145:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@104.167.19.4:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.22.213:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@104.207.47.222:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.4.62:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@209.50.190.140:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@45.3.53.131:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@209.50.184.112:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.249.51:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.245.102:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@104.207.35.92:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.4.117:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@151.123.178.245:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.237.136:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.26.1:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@104.207.50.74:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.239.108:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@104.207.33.33:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@209.50.171.178:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@104.207.43.234:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@45.3.51.147:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.252.153:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.15.12:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.249.210:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@45.3.48.36:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@104.207.39.59:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@151.123.178.113:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.239.57:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@209.50.189.37:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@45.3.50.103:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@45.3.48.129:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.25.235:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@45.3.36.104:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.28.117:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.236.228:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@209.50.163.127:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.235.116:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@104.207.34.137:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.28.221:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@104.207.40.220:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@209.50.165.47:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@104.207.44.75:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@209.50.183.220:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.232.214:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@209.50.184.134:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@104.207.47.172:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.25.248:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@104.167.19.14:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@217.181.90.180:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.5.0:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@104.207.53.63:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@45.3.40.35:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@209.50.179.125:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.251.56:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.3.241:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.4.73:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@45.3.32.129:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.31.240:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.245.224:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.243.136:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@193.56.28.116:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.31.27:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.30.161:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.13.49:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.227.15:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@151.123.176.204:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@104.207.40.10:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.24.72:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@45.3.51.69:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.2.30:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.253.207:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@104.207.43.102:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.247.58:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@45.3.33.67:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@45.3.52.56:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.11.167:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.251.71:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@104.207.55.31:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.29.89:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@65.111.20.185:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@209.50.177.17:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@104.207.39.238:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.241.164:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@216.26.242.29:3129",
-    "http://u9ocz1sriwce:vn4f73h2wcjl6w4@209.50.173.132:3129"
+    "http://Eyi7eecyfihd:pe1rm71fd72ka0k@209.50.177.175:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@65.111.6.98:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@65.111.15.99:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.47.48:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.35.213:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.160.216:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.51.133:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.180.169:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@216.26.232.240:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.52.87:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@216.26.251.136:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.191.84:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@65.111.28.133:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.37.181:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@216.26.224.92:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@216.26.255.106:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.47.128:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.38.17:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.170.180:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.172.165:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.37.53:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.169.0:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@216.26.227.194:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.53.50:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.180.78:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.188.218:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@216.26.249.209:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.33.21:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.39.129:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.191.208:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.186.116:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@104.167.19.176:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@104.207.58.95:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@65.111.13.165:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.32.145:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@104.207.33.227:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.45.178:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.38.33:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.47.195:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@217.181.91.121:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@104.207.44.69:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@216.26.230.228:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.53.28:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.187.186:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@216.26.235.149:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.174.138:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@104.207.37.105:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.37.240:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.40.40:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@104.207.56.236:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@216.26.242.198:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.34.203:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.171.62:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@216.26.239.126:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.169.3:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@216.26.244.93:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@104.207.53.140:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@217.181.91.129:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@104.207.44.251:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.173.23:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@104.207.46.156:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@216.26.245.137:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@65.111.8.250:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.162.29:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@216.26.243.249:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@216.26.232.50:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@193.56.28.28:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@65.111.13.253:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@216.26.242.2:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@104.207.34.129:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@65.111.29.199:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.42.143:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@65.111.29.224:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.36.239:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@65.111.4.143:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@65.111.14.79:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@65.111.1.18:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@104.207.54.229:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.42.147:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@216.26.227.153:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.55.53:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@65.111.7.244:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.182.193:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@104.207.36.52:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@216.26.225.85:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.181.217:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@104.207.62.25:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@104.207.58.236:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@216.26.244.191:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@65.111.25.234:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@104.207.39.139:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.38.200:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@65.111.21.224:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@104.207.40.150:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.191.58:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@104.207.58.48:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.180.171:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@65.111.4.154:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@209.50.189.21:3129",
+    "http://eyi7eecyfihd:pe1rm71fd72ka0k@45.3.40.101:3129"
 ]
 
 # ==========================================
@@ -197,7 +197,7 @@ def update_tokens_in_data(data, old_acc, new_acc, old_ref, new_ref):
         return data
 
 def get_user_id_from_token(token):
-    # ✅ حل باگ: استخراج دقیق شناسه عددی (عدم استفاده از CerberusId)
+    # ✅ استخراج دقیق شناسه عددی
     try:
         payload = token.split('.')[1]
         payload += '=' * (-len(payload) % 4)
@@ -292,7 +292,6 @@ class OkalaAPI:
     def add_address(self, token, uid, addr_data):
         url = 'https://apigateway.okala.com/api/voyager/C/CustomerAccount/AddAddress/'
         
-        # ✅ حل باگ: جلوگیری از ارسال آدرس خالی (که باعث ارور سرور می‌شد)
         addr_text = addr_data.get('address')
         if not addr_text or not str(addr_text).strip():
             addr_text = "آدرس ثبت شده از نقشه"
@@ -576,7 +575,6 @@ def process_discount_links(session_dir, urls):
         report_file = os.path.join(session_dir, "Discounted_Links_Report.txt")
         with open(report_file, "w", encoding="utf-8") as f:
             f.write("گزارش لینک‌های دارای تخفیف:\n" + "="*40 + "\n\n")
-            # ✅ جدا کردن متن و لینک در خط جدید برای سهولت کاربر
             for url, amount in sorted(discounted_links, key=lambda x: x[1], reverse=True):
                 f.write(f"🎁 تخفیف {int(amount/10000)} هزار تومانی:\n{url}\n\n")
                 
@@ -623,7 +621,7 @@ def worker_check_cart_status(target_url, api):
             total_items = sum(cart.get('count', 0) for cart in cart_data)
             total_price = sum(cart.get('totalPrice', 0) for cart in cart_data)
             return target_url, total_items, total_price, "success"
-        return target_url, 0, 0, "success" # سبد خالی
+        return target_url, 0, 0, "success"
         
     return target_url, 0, 0, "error_api"
 
@@ -653,7 +651,6 @@ def process_cart_report_links(session_dir, urls):
         report_file = os.path.join(session_dir, "Cart_Report.txt")
         with open(report_file, "w", encoding="utf-8") as f:
             f.write("گزارش اکانت‌های دارای سبد خرید:\n" + "="*40 + "\n\n")
-            # ✅ جدا کردن متن و لینک در خط جدید برای سهولت کاربر
             for url, items, price in sorted(cart_links, key=lambda x: x[1], reverse=True):
                 f.write(f"🛒 سبد خرید با {items} کالا (مبلغ {int(price/10):,} تومان):\n{url}\n\n")
                 
@@ -832,3 +829,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+aa
