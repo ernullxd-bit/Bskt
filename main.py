@@ -196,18 +196,20 @@ def update_tokens_in_data(data, old_acc, new_acc, old_ref, new_ref):
     except Exception:
         return data
 
-def get_user_id_from_token(token):
-    # ✅ استخراج دقیق شناسه عددی
+# ✅ حل باگ: تفکیک شناسه عددی (برای سبد و آدرس) و حروفی (برای تخفیف)
+def get_user_ids_from_token(token):
     try:
         payload = token.split('.')[1]
         payload += '=' * (-len(payload) % 4)
         decoded_bytes = base64.urlsafe_b64decode(payload)
         data = json.loads(decoded_bytes)
+        
         uid = data.get('userId') or data.get('alternativeCustomerId') or data.get('sub')
-        if uid: return int(uid)
-        return 0
+        cerb_id = data.get('cerberusId')
+        
+        return int(uid) if uid else 0, cerb_id
     except Exception:
-        return 0
+        return 0, None
 
 async def extract_urls_from_message(message: Message, bot: Bot):
     if message.text:
@@ -281,12 +283,8 @@ class OkalaAPI:
         return None, None
 
     # --- متدهای مربوط به آدرس ---
-    def get_address(self, token, uid):
-        url = 'https://apigateway.okala.com/api/voyager/CustomerAddress/CustomerAddressForReact'
-        return self.make_request('GET', url, token, params={'customerId': uid})
-
-    def get_all_addresses_paged(self, token, page_size=50):
-        url = f'https://apigateway.okala.com/api/v1/accounts/userprofile/getcustomeraddresseswithpaging?pageIndex=1&pageSize={page_size}'
+    def get_address(self, token):
+        url = 'https://apigateway.okala.com/api/v1/accounts/userprofile/getcustomeraddresseswithpaging?pageIndex=1&pageSize=15'
         return self.make_request('GET', url, token)
 
     def add_address(self, token, uid, addr_data):
@@ -306,6 +304,7 @@ class OkalaAPI:
             'unit': str(addr_data.get('unit') or '1'), 
             'lat': float(addr_data.get('lat', 35.69975)),
             'lng': float(addr_data.get('lng', 51.33551)), 
+            'cityId': addr_data.get('cityId', 129), # ✅ حل ارور ثبت آدرس
             'title': None, 
             'addressTypeId': 3, 
             'oprationDuration': random.randint(10000, 20000), 
@@ -319,7 +318,7 @@ class OkalaAPI:
         return self.make_request('DELETE', url, token)
 
     # --- متدهای سبد خرید ---
-    def get_stores(self, token, lat, lng, uid):
+    def get_stores(self, token, lat, lng):
         url = 'https://apigateway.okala.com/api/opex/v4/stores/nearby'
         return self.make_request('GET', url, token, params={'latitude': lat, 'longitude': lng})
 
@@ -333,8 +332,9 @@ class OkalaAPI:
         return self.make_request('POST', url, token, json=payload)
 
     # --- متدهای تخفیف ---
-    def get_discounts(self, token, uid):
-        url = f"https://apigateway.okala.com/api/discount/v1/discounts/customer/{uid}"
+    def get_discounts(self, token, cerberus_id):
+        # ✅ حل باگ: برای تخفیف‌ها باید شناسه CerberusId ارسال شود
+        url = f"https://apigateway.okala.com/api/discount/v1/discounts/customer/{cerberus_id}"
         return self.make_request('GET', url, token)
 
 
@@ -351,7 +351,7 @@ def worker_copy_basket(target_url, api, template_data):
     acc_token, ref_token = get_tokens_from_data(data)
     if not acc_token: return target_url, "error_token", data, ["توکن در اطلاعات اکانت یافت نشد."]
 
-    uid = get_user_id_from_token(acc_token)
+    uid, cerb_id = get_user_ids_from_token(acc_token)
     if not uid or uid == 0: return target_url, "error_uuid", data, ["شناسه کاربری (User ID) معتبر نیست."]
 
     status, response_data = api.add_address(acc_token, uid, template_data['address'])
@@ -388,24 +388,35 @@ def process_all_links(session_dir, template_url, target_urls):
     if not template_data_json: return None, None, "خطا: دریافت اطلاعات اکانت مرجع ناموفق بود.", None
 
     t_acc, t_ref = get_tokens_from_data(template_data_json)
-    t_uid = get_user_id_from_token(t_acc)
+    t_uid, cerb_id = get_user_ids_from_token(t_acc)
     if not t_uid or t_uid == 0: return None, None, "خطا: توکن اکانت مرجع معتبر نیست.", None
 
-    status, addr_res = api.get_address(t_acc, t_uid)
+    status, addr_res = api.get_address(t_acc)
     if status == 401 and t_ref:
         t_acc, t_ref = api.refresh_token(t_ref)
         if t_acc:
             template_data_json = update_tokens_in_data(template_data_json, t_acc, t_acc, t_ref, t_ref)
-            status, addr_res = api.get_address(t_acc, t_uid)
+            status, addr_res = api.get_address(t_acc)
 
-    template_addr = None
-    if status == 200 and isinstance(addr_res, dict) and addr_res.get('data'):
-        template_addr = addr_res['data'][0]
-    else:
-        lat, lng, addr_text = 35.69975, 51.33551, "آدرس استخراج شده"
-        template_addr = {'lat': lat, 'lng': lng, 'address': addr_text, 'plaque': '0', 'unit': '1'}
+    template_addr = {
+        'lat': 35.69975,
+        'lng': 51.33551,
+        'address': "آدرس استخراج شده",
+        'plaque': '0',
+        'unit': '1',
+        'cityId': 129
+    }
+    
+    if status == 200 and isinstance(addr_res, dict) and addr_res.get('data') and addr_res['data'].get('customerAddressResponseItems'):
+        addr_info = addr_res['data']['customerAddressResponseItems'][0]
+        template_addr['lat'] = addr_info.get('lat', template_addr['lat'])
+        template_addr['lng'] = addr_info.get('lng', template_addr['lng'])
+        template_addr['address'] = addr_info.get('address', template_addr['address'])
+        template_addr['plaque'] = str(addr_info.get('plaque') or '0')
+        template_addr['unit'] = str(addr_info.get('unit') or '1')
+        template_addr['cityId'] = addr_info.get('cityId', 129)
 
-    status, stores_res = api.get_stores(t_acc, template_addr['lat'], template_addr['lng'], t_uid)
+    status, stores_res = api.get_stores(t_acc, template_addr['lat'], template_addr['lng'])
     if status != 200 or not isinstance(stores_res, dict) or not stores_res.get('data', {}).get('stores'):
         return None, api.request_logs, f"خطا: هیچ فروشگاهی برای مختصات اکانت مرجع یافت نشد. (HTTP Status: {status})", None
 
@@ -453,7 +464,7 @@ def process_all_links(session_dir, template_url, target_urls):
                 counter += 1
             except Exception as e:
                 stats["error_fetch"] += 1
-                all_errors.append(f"🔗 لینک اکانت:\n{url}\nخطای پردازش: {str(e)}\n" + "-"*40)
+                all_errors.append(f"🔗 لینک اکانت:\n{url}\nخطای سیستم: {str(e)}\n" + "-"*40)
 
     zip_path = shutil.make_archive(os.path.join(session_dir, "Updated_Accounts_Data"), 'zip', updated_dir)
     
@@ -523,42 +534,43 @@ def process_delete_all_links(session_dir, target_urls):
 def worker_check_discount(target_url, api):
     time.sleep(random.uniform(0.1, 1.0))
     data = fetch_data(target_url)
-    if not data: return target_url, 0, "error_fetch"
+    if not data: return target_url, 0, "error_fetch", "دریافت اطلاعات ناموفق"
     
     acc_token, ref_token = get_tokens_from_data(data)
-    if not acc_token: return target_url, 0, "error_token"
+    if not acc_token: return target_url, 0, "error_token", "توکن در اکانت یافت نشد"
     
-    uid = get_user_id_from_token(acc_token)
-    if not uid or uid == 0: return target_url, 0, "error_uuid"
+    uid, cerb_id = get_user_ids_from_token(acc_token)
+    if not cerb_id: return target_url, 0, "error_uuid", "Cerberus ID پیدا نشد"
 
-    status, res = api.get_discounts(acc_token, uid)
+    status, res = api.get_discounts(acc_token, cerb_id)
     if status == 401 and ref_token:
         new_acc, _ = api.refresh_token(ref_token)
         if new_acc:
             acc_token = new_acc
-            status, res = api.get_discounts(acc_token, uid)
+            status, res = api.get_discounts(acc_token, cerb_id)
 
     if status == 200 and isinstance(res, dict):
         discounts = res.get('data', [])
-        if not discounts: return target_url, 0, "success"
+        if not discounts: return target_url, 0, "success", None
         valid_amounts = [d.get('discountAmount', 0) for d in discounts if d.get('discountAmount')]
         max_d = max(valid_amounts) if valid_amounts else 0
-        return target_url, max_d, "success"
+        return target_url, max_d, "success", None
     elif status == 401:
-        return target_url, 0, "expired"
+        return target_url, 0, "expired", "توکن منقضی شده است"
     else:
-        return target_url, 0, "error_api"
+        return target_url, 0, "error_api", f"HTTP Status: {status} - {res}"
 
 def process_discount_links(session_dir, urls):
     api = OkalaAPI()
     stats = {"total": len(urls), "with_discount": 0, "no_discount": 0, "errors": 0}
     discounted_links = []
+    all_errors = []
     
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = {executor.submit(worker_check_discount, url, api): url for url in urls}
         for future in as_completed(futures):
             try:
-                url, max_d, res = future.result()
+                url, max_d, res, err = future.result()
                 if res == "success":
                     if max_d > 0:
                         stats["with_discount"] += 1
@@ -567,8 +579,11 @@ def process_discount_links(session_dir, urls):
                         stats["no_discount"] += 1
                 else:
                     stats["errors"] += 1
-            except Exception:
+                    if err:
+                        all_errors.append(f"🔗 لینک:\n{url}\nخطا: {err}\n{'-'*40}")
+            except Exception as e:
                 stats["errors"] += 1
+                all_errors.append(f"🔗 لینک:\n{url}\nخطای سیستم: {str(e)}\n{'-'*40}")
 
     report_file = None
     if discounted_links:
@@ -578,39 +593,46 @@ def process_discount_links(session_dir, urls):
             for url, amount in sorted(discounted_links, key=lambda x: x[1], reverse=True):
                 f.write(f"🎁 تخفیف {int(amount/10000)} هزار تومانی:\n{url}\n\n")
                 
-    return stats, report_file, api.request_logs
+    err_file = None
+    if all_errors:
+        err_file = os.path.join(session_dir, "Discount_Errors.txt")
+        with open(err_file, "w", encoding="utf-8") as f:
+            f.write("گزارش خطاهای بررسی تخفیف:\n============================\n\n")
+            f.write("\n".join(all_errors))
+
+    return stats, report_file, err_file, api.request_logs
 
 
-# --- 4. گزارش وضعیت سبد خرید (جدید) ---
+# --- 4. گزارش وضعیت سبد خرید ---
 def worker_check_cart_status(target_url, api):
     time.sleep(random.uniform(0.1, 1.0))
     data = fetch_data(target_url)
-    if not data: return target_url, 0, 0, "error_fetch"
+    if not data: return target_url, 0, 0, "error_fetch", "دریافت اطلاعات ناموفق"
     
     acc_token, ref_token = get_tokens_from_data(data)
-    if not acc_token: return target_url, 0, 0, "error_token"
+    if not acc_token: return target_url, 0, 0, "error_token", "توکن یافت نشد"
     
-    uid = get_user_id_from_token(acc_token)
-    if not uid or uid == 0: return target_url, 0, 0, "error_uuid"
+    uid, cerb_id = get_user_ids_from_token(acc_token)
+    if not uid or uid == 0: return target_url, 0, 0, "error_uuid", "User ID نامعتبر"
 
-    status, addr_res = api.get_address(acc_token, uid)
+    status, addr_res = api.get_address(acc_token)
     if status == 401 and ref_token:
         new_acc, _ = api.refresh_token(ref_token)
         if new_acc:
             acc_token = new_acc
-            status, addr_res = api.get_address(acc_token, uid)
+            status, addr_res = api.get_address(acc_token)
             
-    if status != 200: return target_url, 0, 0, "error_api"
+    if status != 200: return target_url, 0, 0, "error_api", f"خطا در دریافت آدرس (HTTP {status})"
         
     lat, lng = 35.69975, 51.33551
-    if isinstance(addr_res, dict) and addr_res.get('data'):
-        addr_data = addr_res['data'][0]
+    if isinstance(addr_res, dict) and addr_res.get('data') and addr_res['data'].get('customerAddressResponseItems'):
+        addr_data = addr_res['data']['customerAddressResponseItems'][0]
         lat = addr_data.get('lat', lat)
         lng = addr_data.get('lng', lng)
 
-    status, stores_res = api.get_stores(acc_token, lat, lng, uid)
+    status, stores_res = api.get_stores(acc_token, lat, lng)
     if status != 200 or not isinstance(stores_res, dict) or not stores_res.get('data', {}).get('stores'):
-        return target_url, 0, 0, "error_api"
+        return target_url, 0, 0, "error_api", f"خطا در دریافت فروشگاه‌ها (HTTP {status})"
 
     store_ids = [s['storeId'] for s in stores_res['data']['stores']]
     status, cart_res = api.get_cart(acc_token, uid, store_ids)
@@ -620,21 +642,22 @@ def worker_check_cart_status(target_url, api):
         if cart_data:
             total_items = sum(cart.get('count', 0) for cart in cart_data)
             total_price = sum(cart.get('totalPrice', 0) for cart in cart_data)
-            return target_url, total_items, total_price, "success"
-        return target_url, 0, 0, "success"
+            return target_url, total_items, total_price, "success", None
+        return target_url, 0, 0, "success", None # سبد خالی
         
-    return target_url, 0, 0, "error_api"
+    return target_url, 0, 0, "error_api", f"خطا در دریافت سبد خرید (HTTP {status})"
 
 def process_cart_report_links(session_dir, urls):
     api = OkalaAPI()
     stats = {"total": len(urls), "with_cart": 0, "empty_cart": 0, "errors": 0}
     cart_links = []
+    all_errors = []
     
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = {executor.submit(worker_check_cart_status, url, api): url for url in urls}
         for future in as_completed(futures):
             try:
-                url, items, price, res = future.result()
+                url, items, price, res, err = future.result()
                 if res == "success":
                     if items > 0:
                         stats["with_cart"] += 1
@@ -643,8 +666,11 @@ def process_cart_report_links(session_dir, urls):
                         stats["empty_cart"] += 1
                 else:
                     stats["errors"] += 1
-            except Exception:
+                    if err:
+                        all_errors.append(f"🔗 لینک:\n{url}\nخطا: {err}\n{'-'*40}")
+            except Exception as e:
                 stats["errors"] += 1
+                all_errors.append(f"🔗 لینک:\n{url}\nخطای سیستم: {str(e)}\n{'-'*40}")
 
     report_file = None
     if cart_links:
@@ -654,7 +680,14 @@ def process_cart_report_links(session_dir, urls):
             for url, items, price in sorted(cart_links, key=lambda x: x[1], reverse=True):
                 f.write(f"🛒 سبد خرید با {items} کالا (مبلغ {int(price/10):,} تومان):\n{url}\n\n")
                 
-    return stats, report_file, api.request_logs
+    err_file = None
+    if all_errors:
+        err_file = os.path.join(session_dir, "Cart_Errors.txt")
+        with open(err_file, "w", encoding="utf-8") as f:
+            f.write("گزارش خطاهای بررسی سبد خرید:\n============================\n\n")
+            f.write("\n".join(all_errors))
+
+    return stats, report_file, err_file, api.request_logs
 
 
 # ==========================================
@@ -766,7 +799,7 @@ async def handle_discount_links(message: Message, bot: Bot, state: FSMContext):
     session_dir = os.path.join(SESSION_BASE_DIR, str(uuid.uuid4()))
     os.makedirs(session_dir, exist_ok=True)
     
-    stats, report_file, logs = await asyncio.to_thread(process_discount_links, session_dir, urls)
+    stats, report_file, err_file, logs = await asyncio.to_thread(process_discount_links, session_dir, urls)
 
     await msg.delete()
     report = (
@@ -783,6 +816,9 @@ async def handle_discount_links(message: Message, bot: Bot, state: FSMContext):
             document=FSInputFile(report_file), 
             caption="🎁 فایل لینک‌های دارای تخفیف"
         )
+        
+    if err_file and os.path.exists(err_file):
+        await message.answer_document(document=FSInputFile(err_file), caption="⚠️ فایل گزارش خطاها")
     
     shutil.rmtree(session_dir, ignore_errors=True)
     await state.clear()
@@ -799,7 +835,7 @@ async def handle_cart_report_links(message: Message, bot: Bot, state: FSMContext
     session_dir = os.path.join(SESSION_BASE_DIR, str(uuid.uuid4()))
     os.makedirs(session_dir, exist_ok=True)
     
-    stats, report_file, logs = await asyncio.to_thread(process_cart_report_links, session_dir, urls)
+    stats, report_file, err_file, logs = await asyncio.to_thread(process_cart_report_links, session_dir, urls)
 
     await msg.delete()
     report = (
@@ -816,6 +852,9 @@ async def handle_cart_report_links(message: Message, bot: Bot, state: FSMContext
             document=FSInputFile(report_file), 
             caption="🛒 فایل لینک‌های دارای سبد خرید"
         )
+        
+    if err_file and os.path.exists(err_file):
+        await message.answer_document(document=FSInputFile(err_file), caption="⚠️ فایل گزارش خطاها")
     
     shutil.rmtree(session_dir, ignore_errors=True)
     await state.clear()
@@ -829,4 +868,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-aa
